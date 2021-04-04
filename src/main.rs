@@ -6,8 +6,6 @@ use std::ffi::{CStr, CString};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-// TODO: Remove .unwraps()
-
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
         let home = match home_dir() {
@@ -45,7 +43,7 @@ fn execute(args: Vec<&CStr>) -> i32 {
         return 1;
     }
 
-    match args[0].to_str().unwrap() {
+    match args[0].to_string_lossy().as_ref() {
         "cd" => change_directory(args),
         _ => launch(args),
     }
