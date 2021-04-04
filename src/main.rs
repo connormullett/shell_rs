@@ -12,7 +12,7 @@ use std::path::PathBuf;
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
         let home = match home_dir() {
-            Some(value) => value.to_str().unwrap().to_string(),
+            Some(value) => String::from(value.to_string_lossy()),
             None => return 1,
         };
         let _ = chdir(home.as_bytes());
@@ -76,14 +76,16 @@ fn launch(args: Vec<&CStr>) -> i32 {
 fn shell_loop() {
     loop {
         let cwd = get_current_directory();
-
-        let prompt = format!("{} $ ", cwd.to_str().unwrap());
+        let prompt = format!("{} $ ", cwd.to_string_lossy());
 
         print!("{}", prompt);
-
         let _ = io::stdout().flush();
 
         let line = read_line().unwrap();
+
+        if line.is_empty() {
+            continue;
+        }
 
         let args = split_line(&line);
         let args = args.iter().map(|c| c.as_c_str()).collect();
