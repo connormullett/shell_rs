@@ -1,3 +1,4 @@
+use dirs::home_dir;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, execvp, fork, ForkResult};
 use std::ffi::{CStr, CString};
@@ -6,7 +7,11 @@ use std::io::{self, Write};
 
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
-        let _ = chdir("~");
+        let home = match home_dir() {
+            Some(value) => value.to_str().unwrap().to_string(),
+            None => return 1,
+        };
+        let _ = chdir(home.as_bytes());
     } else {
         let _ = chdir(args[1]);
     }
