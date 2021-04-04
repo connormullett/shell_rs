@@ -23,7 +23,10 @@ fn change_directory(args: Vec<&CStr>) -> i32 {
 }
 
 fn get_current_directory() -> PathBuf {
-    env::current_dir().unwrap()
+    match env::current_dir() {
+        Ok(dir) => dir,
+        Err(_) => PathBuf::new(),
+    }
 }
 
 fn read_line() -> Result<String> {
