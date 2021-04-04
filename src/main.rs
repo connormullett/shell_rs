@@ -1,9 +1,13 @@
 use dirs::home_dir;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, execvp, fork, ForkResult};
+use std::env;
 use std::ffi::{CStr, CString};
 use std::io::Result;
 use std::io::{self, Write};
+use std::path::PathBuf;
+
+// TODO: Remove .unwraps()
 
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
@@ -16,6 +20,10 @@ fn change_directory(args: Vec<&CStr>) -> i32 {
         let _ = chdir(args[1]);
     }
     1
+}
+
+fn get_current_directory() -> PathBuf {
+    env::current_dir().unwrap()
 }
 
 fn read_line() -> Result<String> {
@@ -62,7 +70,12 @@ fn launch(args: Vec<&CStr>) -> i32 {
 
 fn shell_loop() {
     loop {
-        print!("> ");
+        let cwd = get_current_directory();
+
+        let prompt = format!("{} $ ", cwd.to_str().unwrap());
+
+        print!("{}", prompt);
+
         let _ = io::stdout().flush();
 
         let line = read_line().unwrap();
