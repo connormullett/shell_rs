@@ -1,8 +1,17 @@
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execvp, fork, ForkResult};
+use nix::unistd::{chdir, execvp, fork, ForkResult};
 use std::ffi::{CStr, CString};
 use std::io::Result;
 use std::io::{self, Write};
+
+fn change_directory(args: Vec<&CStr>) -> i32 {
+    if let 1 = args.len() {
+        let _ = chdir("~");
+    } else {
+        let _ = chdir(args[1]);
+    }
+    1
+}
 
 fn read_line() -> Result<String> {
     let mut buffer = String::new();
@@ -17,6 +26,17 @@ fn split_line(line: &str) -> Vec<CString> {
 }
 
 fn execute(args: Vec<&CStr>) -> i32 {
+    if let 0 = args.len() {
+        return 1;
+    }
+
+    match args[0].to_str().unwrap() {
+        "cd" => change_directory(args),
+        _ => launch(args),
+    }
+}
+
+fn launch(args: Vec<&CStr>) -> i32 {
     let fork_result = unsafe { fork() };
 
     if let Ok(ForkResult::Child) = fork_result {
@@ -45,7 +65,7 @@ fn shell_loop() {
         let args = split_line(&line);
         let args = args.iter().map(|c| c.as_c_str()).collect();
 
-        let _status = execute(args);
+        execute(args);
     }
 }
 
