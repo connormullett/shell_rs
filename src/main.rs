@@ -53,7 +53,9 @@ fn launch(args: Vec<&CStr>) -> i32 {
     let fork_result = unsafe { fork() };
 
     if let Ok(ForkResult::Child) = fork_result {
-        execvp(args[0], &args).unwrap();
+        if let Err(_) = execvp(args[0], &args) {
+            println!("'{}': command not found", args[0].to_str().unwrap());
+        };
     };
 
     if let Ok(ForkResult::Parent { child, .. }) = fork_result {
