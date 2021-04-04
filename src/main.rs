@@ -3,7 +3,6 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, execvp, fork, ForkResult};
 use std::env;
 use std::ffi::{CStr, CString};
-use std::io::Result;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -29,10 +28,10 @@ fn get_current_directory() -> PathBuf {
     }
 }
 
-fn read_line() -> Result<String> {
+fn read_line() -> String {
     let mut buffer = String::new();
-    io::stdin().read_line(&mut buffer)?;
-    Ok(buffer.trim().to_string())
+    let _ = io::stdin().read_line(&mut buffer);
+    buffer.trim().to_string()
 }
 
 fn split_line(line: &str) -> Vec<CString> {
@@ -81,7 +80,7 @@ fn shell_loop() {
         print!("{}", prompt);
         let _ = io::stdout().flush();
 
-        let line = read_line().unwrap();
+        let line = read_line();
 
         if line.is_empty() {
             continue;
