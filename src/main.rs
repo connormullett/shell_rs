@@ -3,8 +3,9 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, execvp, fork, ForkResult};
 use std::env;
 use std::ffi::{CStr, CString};
+use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
@@ -91,6 +92,45 @@ fn shell_loop() {
     }
 }
 
+fn check_config_path(path: PathBuf) -> bool {
+    Path::new(path.as_path()).exists()
+}
+
+fn find_config_file() -> Option<PathBuf> {
+    let home_dir = home_dir()?;
+    let config_file_name = ".shillrc";
+    let paths = vec![home_dir.to_str().unwrap(), "~/.config"];
+
+    for path in paths {
+        let mut path = PathBuf::from(path);
+        path.push(config_file_name);
+        if let true = check_config_path(path.clone()) {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+fn read_config_file() -> Option<String> {
+    let config_path = match find_config_file() {
+        Some(value) => value,
+        None => return None,
+    };
+
+    let content = match fs::read_to_string(config_path) {
+        Ok(value) => value,
+        Err(_) => return None,
+    };
+
+    Some(content)
+}
+
+fn load_config() {
+    let config_content = read_config_file();
+}
+
 fn main() {
+    load_config();
     shell_loop();
 }
