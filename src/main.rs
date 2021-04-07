@@ -89,7 +89,9 @@ fn shell_loop(config: &HashMap<String, String>) {
         let cwd = get_current_directory();
         let prompt = format!("{} $ ", cwd.to_string_lossy());
 
-        print!("{}", prompt);
+        let processed_prompt = process_line(prompt, config);
+
+        print!("{}", processed_prompt);
         let _ = io::stdout().flush();
 
         let line = read_line();
