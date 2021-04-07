@@ -7,6 +7,10 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+mod parse;
+
+use parse::Config;
+
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
         let home = match home_dir() {
@@ -71,7 +75,7 @@ fn launch(args: Vec<&CStr>) -> i32 {
     1
 }
 
-fn shell_loop() {
+fn shell_loop(config: &Config) {
     loop {
         let cwd = get_current_directory();
         let prompt = format!("{} $ ", cwd.to_string_lossy());
@@ -126,11 +130,16 @@ fn read_config_file() -> Option<String> {
     Some(content)
 }
 
-fn load_config() {
+fn load_config() -> Config {
     let config_content = read_config_file();
+    if let Some(content) = config_content {
+        parse::parse_config(&content).unwrap().1
+    } else {
+        Config::default()
+    }
 }
 
 fn main() {
-    load_config();
-    shell_loop();
+    let config = load_config();
+    shell_loop(&config);
 }
