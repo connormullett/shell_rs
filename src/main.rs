@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 mod parse;
 
-use parse::Config;
+use std::collections::HashMap;
 
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
@@ -75,7 +75,16 @@ fn launch(args: Vec<&CStr>) -> i32 {
     1
 }
 
-fn shell_loop(config: &Config) {
+fn process_line(args: String, config: &HashMap<String, String>) -> String {
+    let mut processed_line = args;
+    for (key, value) in config {
+        processed_line = processed_line.replace(key, value);
+    }
+
+    processed_line
+}
+
+fn shell_loop(config: &HashMap<String, String>) {
     loop {
         let cwd = get_current_directory();
         let prompt = format!("{} $ ", cwd.to_string_lossy());
@@ -89,7 +98,9 @@ fn shell_loop(config: &Config) {
             continue;
         }
 
-        let args = split_line(&line);
+        let processed_line = process_line(line, config);
+
+        let args = split_line(&processed_line);
         let args = args.iter().map(|c| c.as_c_str()).collect();
 
         execute(args);
@@ -130,12 +141,12 @@ fn read_config_file() -> Option<String> {
     Some(content)
 }
 
-fn load_config() -> Config {
+fn load_config() -> HashMap<String, String> {
     let config_content = read_config_file();
     if let Some(content) = config_content {
         parse::parse_config(&content).unwrap().1
     } else {
-        Config::default()
+        HashMap::new()
     }
 }
 

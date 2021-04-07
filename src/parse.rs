@@ -41,5 +41,8 @@ pub fn parse_config(input: &str) -> Res<&str, HashMap<String, String>> {
 }
 
 fn map_vec_to_hash_map(items: Vec<ConfigItem>) -> HashMap<String, String> {
-    items.iter().map(|item| (item.key, item.value)).collect()
+    items
+        .iter()
+        .map(|item| (item.key.clone(), item.value.clone()))
+        .collect()
 }
