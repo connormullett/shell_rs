@@ -1,48 +1,26 @@
-use nom::{
-    bytes::streaming::tag,
-    character::complete::{alphanumeric1, newline},
-    error::{context, VerboseError},
-    multi::separated_list0,
-    sequence::separated_pair,
-    IResult,
-};
-
 use std::collections::HashMap;
 
-pub struct ConfigItem {
-    pub key: String,
-    pub value: String,
-}
+#[derive(Debug)]
+pub struct ParseError(String);
 
-impl ConfigItem {
-    pub fn new(key: String, value: String) -> Self {
-        Self { key, value }
+pub fn parse_config(config_content: String) -> Result<HashMap<String, String>, ParseError> {
+    let key_value_delimiter = "=";
+
+    let mut config_map = HashMap::new();
+
+    for line in config_content.split('\n') {
+        if line.is_empty() {
+            continue;
+        }
+
+        let key_value: Vec<&str> = line.split(key_value_delimiter).collect();
+
+        if key_value.len() > 2 {
+            return Err(ParseError("Error reading config file".to_string()));
+        }
+
+        config_map.insert(key_value[0].to_string(), key_value[1].to_string());
     }
-}
 
-type Res<T, U> = IResult<T, U, VerboseError<T>>;
-
-fn parse_config_pair(input: &str) -> Res<&str, ConfigItem> {
-    context(
-        "parse_config_pair",
-        separated_pair(alphanumeric1, tag("="), alphanumeric1),
-    )(input)
-    .map(|(next_input, output)| {
-        (
-            next_input,
-            ConfigItem::new(output.0.to_string(), output.1.to_string()),
-        )
-    })
-}
-
-pub fn parse_config(input: &str) -> Res<&str, HashMap<String, String>> {
-    context("parse_config", separated_list0(newline, parse_config_pair))(input)
-        .map(|(next_input, items)| (next_input, map_vec_to_hash_map(items)))
-}
-
-fn map_vec_to_hash_map(items: Vec<ConfigItem>) -> HashMap<String, String> {
-    items
-        .iter()
-        .map(|item| (item.key.clone(), item.value.clone()))
-        .collect()
+    Ok(config_map)
 }

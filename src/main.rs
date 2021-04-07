@@ -18,6 +18,8 @@ fn change_directory(args: Vec<&CStr>) -> i32 {
             None => return 1,
         };
         let _ = chdir(home.as_bytes());
+    } else if !check_path(PathBuf::from(args[1].to_string_lossy().into_owned())) {
+        println!("'{}': No such file or directory", args[1].to_string_lossy());
     } else {
         let _ = chdir(args[1]);
     }
@@ -86,8 +88,8 @@ fn process_line(args: String, config: &HashMap<String, String>) -> String {
 
 fn shell_loop(config: &HashMap<String, String>) {
     loop {
-        let cwd = get_current_directory();
-        let prompt = format!("{} $ ", cwd.to_string_lossy());
+        let current_directory = get_current_directory();
+        let prompt = format!("{} $ ", current_directory.to_string_lossy());
 
         let processed_prompt = process_line(prompt, config);
 
@@ -109,7 +111,7 @@ fn shell_loop(config: &HashMap<String, String>) {
     }
 }
 
-fn check_config_path(path: PathBuf) -> bool {
+fn check_path(path: PathBuf) -> bool {
     Path::new(path.as_path()).exists()
 }
 
@@ -121,7 +123,7 @@ fn find_config_file() -> Option<PathBuf> {
     for path in paths {
         let mut path = PathBuf::from(path);
         path.push(config_file_name);
-        if let true = check_config_path(path.clone()) {
+        if let true = check_path(path.clone()) {
             return Some(path);
         }
     }
@@ -146,7 +148,7 @@ fn read_config_file() -> Option<String> {
 fn load_config() -> HashMap<String, String> {
     let config_content = read_config_file();
     if let Some(content) = config_content {
-        parse::parse_config(&content).unwrap().1
+        parse::parse_config(content).unwrap()
     } else {
         HashMap::new()
     }
