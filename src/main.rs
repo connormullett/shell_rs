@@ -1,15 +1,17 @@
 use dirs::home_dir;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, execvp, fork, ForkResult};
+use std::collections::HashMap;
 use std::env;
 use std::ffi::{CStr, CString};
-use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+mod load_config;
 mod parse;
 
-use std::collections::HashMap;
+use load_config::check_path;
+use load_config::load_config;
 
 fn change_directory(args: Vec<&CStr>) -> i32 {
     if let 1 = args.len() {
@@ -36,6 +38,7 @@ fn get_current_directory() -> PathBuf {
 fn read_line() -> String {
     let mut buffer = String::new();
     let _ = io::stdin().read_line(&mut buffer);
+
     buffer.trim().to_string()
 }
 
@@ -86,12 +89,30 @@ fn process_line(args: String, config: &HashMap<String, String>) -> String {
     processed_line
 }
 
+fn process_prompt(prompt: String) -> String {
+    let mut processed_prompt = prompt;
+
+    let home = home_dir().unwrap();
+    let home = match home.to_str() {
+        Some(directory) => directory,
+        None => "",
+    };
+
+    let prompt_aliases = vec![(home, "~")];
+
+    for (value_to_replace, alias) in prompt_aliases {
+        processed_prompt = processed_prompt.replace(value_to_replace, alias);
+    }
+
+    processed_prompt
+}
+
 fn shell_loop(config: &HashMap<String, String>) {
     loop {
         let current_directory = get_current_directory();
         let prompt = format!("{} $ ", current_directory.to_string_lossy());
 
-        let processed_prompt = process_line(prompt, config);
+        let processed_prompt = process_prompt(prompt);
 
         print!("{}", processed_prompt);
         let _ = io::stdout().flush();
@@ -108,49 +129,6 @@ fn shell_loop(config: &HashMap<String, String>) {
         let args = args.iter().map(|c| c.as_c_str()).collect();
 
         execute(args);
-    }
-}
-
-fn check_path(path: PathBuf) -> bool {
-    Path::new(path.as_path()).exists()
-}
-
-fn find_config_file() -> Option<PathBuf> {
-    let home_dir = home_dir()?;
-    let config_file_name = ".shillrc";
-    let paths = vec![home_dir.to_str().unwrap(), "~/.config"];
-
-    for path in paths {
-        let mut path = PathBuf::from(path);
-        path.push(config_file_name);
-        if let true = check_path(path.clone()) {
-            return Some(path);
-        }
-    }
-
-    None
-}
-
-fn read_config_file() -> Option<String> {
-    let config_path = match find_config_file() {
-        Some(value) => value,
-        None => return None,
-    };
-
-    let content = match fs::read_to_string(config_path) {
-        Ok(value) => value,
-        Err(_) => return None,
-    };
-
-    Some(content)
-}
-
-fn load_config() -> HashMap<String, String> {
-    let config_content = read_config_file();
-    if let Some(content) = config_content {
-        parse::parse_config(content).unwrap()
-    } else {
-        HashMap::new()
     }
 }
 
